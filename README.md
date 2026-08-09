@@ -162,6 +162,19 @@ ENABLE_IDLE_FALLBACK_CANCEL=false
   aiff, wav, ...). Ships pointing at `assets/attention.mp3`. Relative paths
   resolve from the project root. If the file is missing, it falls back to a
   bundled macOS system sound rather than failing silently or crashing.
+
+  To use a different sound:
+  1. Find a short clip you like — [myinstants.com](https://www.myinstants.com/en/index/in/)
+     has a large library of free, short sound effects, or use any mp3/aiff/wav
+     of your own.
+  2. Download it and drop it into `assets/` (e.g. `assets/my-sound.mp3`).
+  3. Edit `config.env` and change `ATTENTION_SOUND` to that path:
+     ```env
+     ATTENTION_SOUND=./assets/my-sound.mp3
+     ```
+  4. That's it — no reinstall or restart needed. The next time a permission
+     prompt times out, it plays the new file. Run `./tests/run-tests.sh` if
+     you want to sanity-check nothing else broke.
 - **Loudness**: two independent levers, both on by default.
   `ATTENTION_SOUND_GAIN` boosts the sound file itself via `afplay -v` (1.0 is
   unity; pushing much past ~2 just clips/distorts rather than getting
