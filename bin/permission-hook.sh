@@ -34,7 +34,12 @@ is_wait_event() {
     PermissionRequest) return 0 ;;
     Notification)
       case "$NOTIFICATION_TYPE" in
-        permission_prompt|idle_prompt|agent_needs_input) return 0 ;;
+        # Only an actual Allow/Deny dialog counts. idle_prompt and
+        # agent_needs_input fire whenever Claude Code is simply waiting for
+        # your next message (normal, constant background noise between
+        # turns) -- treating those as a wait event fired the alarm for no
+        # reason, with nothing to actually respond to.
+        permission_prompt) return 0 ;;
         *) return 1 ;;
       esac
       ;;

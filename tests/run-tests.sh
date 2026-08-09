@@ -301,6 +301,22 @@ echo "=== Permission Timeout & Attention Reminder -- test suite ==="
   fi
 }
 
+# Bonus: idle_prompt notifications never start a timer -- Claude Code sends
+# these just for sitting idle waiting on your next message, not only for an
+# actual permission dialog, so treating it as a wait event fired the alarm
+# with nothing to respond to.
+{
+  name="idle_prompt_notification_ignored"
+  d="$(new_case_dir "$name")"; log="$d/log"; sid="sess-14"
+  send_event notification_idle_prompt "$sid" "$d/state" "$log" PERMISSION_TIMEOUT=1
+  sleep 0.3
+  if not_present "$log" "timer started"; then
+    pass "$name"
+  else
+    fail "$name" "idle_prompt notification must never start a timer"
+  fi
+}
+
 # Bonus: malformed / unrelated events never start a timer
 {
   name="malformed_and_unrelated_events_ignored"

@@ -57,7 +57,7 @@ jq \
   strip_ours(["PermissionRequest","PermissionDenied","Notification","PreToolUse","PostToolUse","UserPromptSubmit","Stop","SubagentStop"])
   | add_ours("PermissionRequest"; "")
   | add_ours("PermissionDenied"; "")
-  | add_ours("Notification"; "permission_prompt|idle_prompt|agent_needs_input")
+  | add_ours("Notification"; "permission_prompt")
   | add_ours("PreToolUse"; "")
   | add_ours("PostToolUse"; "")
   | add_ours("UserPromptSubmit"; "")
