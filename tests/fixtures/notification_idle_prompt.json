@@ -1,0 +1,8 @@
+{
+  "session_id": "SESSION_ID_PLACEHOLDER",
+  "transcript_path": "/tmp/transcript.jsonl",
+  "cwd": "/tmp",
+  "hook_event_name": "Notification",
+  "notification_type": "idle_prompt",
+  "message": "Claude is waiting for your input"
+}

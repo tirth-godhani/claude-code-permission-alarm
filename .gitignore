@@ -1,0 +1,5 @@
+state/
+logs/
+.DS_Store
+.claude/*.lock
+.claude/settings.local.json

@@ -1,0 +1,11 @@
+{
+  "session_id": "SESSION_ID_PLACEHOLDER",
+  "prompt_id": "prompt-1",
+  "transcript_path": "/tmp/transcript.jsonl",
+  "cwd": "/tmp",
+  "permission_mode": "default",
+  "hook_event_name": "PermissionRequest",
+  "tool_name": "Bash",
+  "tool_input": { "command": "echo hi" },
+  "tool_use_id": "tool-1"
+}
