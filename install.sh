@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Registers bin/permission-hook.sh against Claude Code's PermissionRequest,
 # Notification, PreToolUse, UserPromptSubmit, and Stop hooks. Idempotent:
-# strips any prior entries for this script before re-adding, so re-running
-# after an upgrade or path change is always safe. Backs up settings.json
+# strips any prior entry for this tool before re-adding -- matched by
+# *basename* (any command ending in /bin/permission-hook.sh), not exact
+# path, so installing from a second location (e.g. get.sh into
+# ~/.claude-code-permission-alarm after previously cloning the repo
+# elsewhere) replaces the old registration instead of running both side by
+# side and double-firing the alarm on every prompt. Backs up settings.json
 # first and validates the result before writing.
 set -euo pipefail
 
@@ -35,6 +39,15 @@ BACKUP_FILE="${SETTINGS_FILE}.bak.$(date +%Y%m%d%H%M%S)"
 cp "$SETTINGS_FILE" "$BACKUP_FILE"
 echo "Backed up existing settings to $BACKUP_FILE"
 
+OLD_PATHS="$(jq -r --arg cmd "$HOOK_PATH" '
+  [(.hooks // {}) | to_entries[].value[]?.hooks[]?.command
+   | select(. != null and (endswith("/bin/permission-hook.sh")) and . != $cmd)] | unique | .[]
+' "$SETTINGS_FILE" 2>/dev/null || true)"
+if [[ -n "$OLD_PATHS" ]]; then
+  echo "Replacing a previous install found at:"
+  echo "$OLD_PATHS" | sed 's/^/  /'
+fi
+
 TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
@@ -44,7 +57,7 @@ jq \
   def strip_ours($events):
     reduce $events[] as $e (.;
       .hooks[$e] = ((.hooks[$e] // []) | map(
-        .hooks = ((.hooks // []) | map(select(.command != $cmd)))
+        .hooks = ((.hooks // []) | map(select((.command // "") | endswith("/bin/permission-hook.sh") | not)))
       ) | map(select((.hooks // []) | length > 0)))
     );
 
@@ -76,4 +89,4 @@ trap - EXIT
 
 echo "Installed permission-timeout hooks into $SETTINGS_FILE (scope: $SCOPE)"
 echo "Edit $SCRIPT_DIR/config.env to configure timeout, sound, and attention command."
-echo "Run tests/run-tests.sh to verify, or tests/live-test.sh for a real end-to-end check."
+echo "Run tests/run-tests.sh to verify."

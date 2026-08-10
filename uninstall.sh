@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Removes all bin/permission-hook.sh entries from Claude Code's settings.json,
-# leaving every other hook untouched. Backs up first.
+# Removes this tool's hook entries from Claude Code's settings.json, leaving
+# every other hook untouched. Matched by *basename* (any command ending in
+# /bin/permission-hook.sh), not exact path, so this removes the tool
+# regardless of which copy (this one, or a different install location)
+# originally registered it -- see install.sh for why. Backs up first.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOOK_PATH="$SCRIPT_DIR/bin/permission-hook.sh"
 
 SCOPE="user"
 if [[ "${1:-}" == "--project" ]]; then
@@ -35,11 +37,10 @@ TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
 jq \
-  --arg cmd "$HOOK_PATH" \
   '
   .hooks = ((.hooks // {}) | with_entries(
     .value = (.value | map(
-      .hooks = ((.hooks // []) | map(select(.command != $cmd)))
+      .hooks = ((.hooks // []) | map(select((.command // "") | endswith("/bin/permission-hook.sh") | not)))
     ) | map(select((.hooks // []) | length > 0)))
   ) | with_entries(select((.value // []) | length > 0)))
   | if (.hooks // {}) == {} then del(.hooks) else . end
