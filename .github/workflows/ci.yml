@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    # The only platform this tool supports (see README) -- afplay, osascript,
+    # and ioreg are all macOS-only, so an ubuntu/windows job would either be
+    # skipped dead weight or fail for reasons unrelated to real bugs.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure jq is available
+        run: command -v jq || brew install jq
+
+      - name: Syntax-check every script
+        run: |
+          set -e
+          for f in bin/*.sh lib/*.sh install.sh uninstall.sh get.sh tests/*.sh; do
+            echo "bash -n $f"
+            bash -n "$f"
+          done
+
+      - name: Core hook/timer/attention test suite
+        run: ./tests/run-tests.sh
+
+      - name: install.sh / uninstall.sh test suite
+        run: ./tests/install-tests.sh
+
+      - name: get.sh end-to-end smoke test
+        run: ./tests/remote-install-test.sh

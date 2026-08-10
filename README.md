@@ -1,5 +1,7 @@
 # Permission Timeout & Attention Reminder
 
+[![CI](https://github.com/tirth-godhani/claude-code-permission-alarm/actions/workflows/ci.yml/badge.svg)](https://github.com/tirth-godhani/claude-code-permission-alarm/actions/workflows/ci.yml)
+
 Sometimes Claude Code stops and waits for you to click Allow/Deny, and you
 don't notice for a while. This tool fixes that.
 
@@ -104,3 +106,14 @@ volume.
 
 - macOS only, for now.
 - Only makes noise — it never answers the permission prompt for you.
+
+## Contributing
+
+Bug reports, feature ideas, and PRs are welcome — see
+[CONTRIBUTING.md](CONTRIBUTING.md) for dev setup and how to run the tests.
+Found a security issue? See [SECURITY.md](SECURITY.md) instead of opening a
+public issue.
+
+## License
+
+[MIT](LICENSE)
