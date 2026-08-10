@@ -9,7 +9,6 @@
 set -euo pipefail
 
 REPO="tirth-godhani/claude-code-permission-alarm"
-BRANCH="master"
 INSTALL_DIR="${CLAUDE_ALARM_INSTALL_DIR:-$HOME/.claude-code-permission-alarm}"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -28,10 +27,22 @@ fi
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-echo "Downloading claude-code-permission-alarm..."
-curl -fsSL "https://codeload.github.com/$REPO/tar.gz/refs/heads/$BRANCH" -o "$TMP_DIR/src.tar.gz"
+# Install the latest tagged release if one exists, falling back to master
+# if the GitHub API is unreachable or rate-limited (curl/jq failures here
+# are swallowed with `|| true` specifically so a flaky API call degrades to
+# "install master" rather than aborting the whole install).
+REF="refs/heads/master"
+LATEST_TAG="$(curl -fsSL --max-time 5 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null)" || true
+if [[ -n "$LATEST_TAG" ]]; then
+  REF="refs/tags/$LATEST_TAG"
+  echo "Downloading claude-code-permission-alarm $LATEST_TAG..."
+else
+  echo "Downloading claude-code-permission-alarm (no tagged release found, using master)..."
+fi
+
+curl -fsSL "https://codeload.github.com/$REPO/tar.gz/$REF" -o "$TMP_DIR/src.tar.gz"
 tar -xzf "$TMP_DIR/src.tar.gz" -C "$TMP_DIR"
-SRC_DIR="$(find "$TMP_DIR" -maxdepth 1 -type d -name "*-$BRANCH")"
+SRC_DIR="$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 
 if [[ -z "$SRC_DIR" || ! -f "$SRC_DIR/install.sh" ]]; then
   echo "error: download didn't extract as expected." >&2
