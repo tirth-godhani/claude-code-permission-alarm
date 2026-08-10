@@ -14,26 +14,43 @@ for you — it only makes noise.
 
 ## How to install
 
+**One command — no need to clone this repo first:**
+
 ```bash
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/tirth-godhani/claude-code-permission-alarm/master/get.sh | bash
 ```
 
-This adds the reminder to Claude Code for all your projects.
+This downloads the tool into `~/.claude-code-permission-alarm` and wires it
+into Claude Code for all your projects. Re-running it later upgrades to the
+latest version without touching your `config.env` settings.
 
-If you only want it active in this one project, use:
+If you'd rather clone the repo yourself (e.g. to edit the code), that still
+works the same way it always did:
 
 ```bash
-./install.sh --project
+git clone https://github.com/tirth-godhani/claude-code-permission-alarm.git
+cd claude-code-permission-alarm
+./install.sh              # for all your projects
+./install.sh --project    # or, for just the current project
 ```
 
 ## How to uninstall
 
+If you installed with the one-line command above:
+
 ```bash
-./uninstall.sh
+~/.claude-code-permission-alarm/uninstall.sh
+rm -rf ~/.claude-code-permission-alarm
 ```
 
-This removes only this tool's settings. Anything else you've configured in
-Claude Code is left alone.
+If you cloned the repo yourself, run `./uninstall.sh` from inside it instead.
+
+Either way, this removes only this tool's settings — anything else you've
+configured in Claude Code is left alone.
+
+All the commands below (`config.env`, `tests/run-tests.sh`, etc.) are run
+from wherever the tool lives — `~/.claude-code-permission-alarm` if you used
+the one-line install, or the folder you cloned into otherwise.
 
 ## How to change the sound
 
