@@ -27,17 +27,21 @@ fi
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-# Install the latest tagged release if one exists, falling back to master
-# if the GitHub API is unreachable or rate-limited (curl/jq failures here
-# are swallowed with `|| true` specifically so a flaky API call degrades to
-# "install master" rather than aborting the whole install).
+# Prefer a formal GitHub Release's tag; if none exists yet, fall back to the
+# most recently pushed git tag; if there are no tags at all (or the API is
+# unreachable/rate-limited), fall back to master. curl/jq failures are
+# swallowed with `|| true` throughout so a flaky API call degrades one step
+# rather than aborting the whole install.
 REF="refs/heads/master"
 LATEST_TAG="$(curl -fsSL --max-time 5 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null)" || true
+if [[ -z "$LATEST_TAG" ]]; then
+  LATEST_TAG="$(curl -fsSL --max-time 5 "https://api.github.com/repos/$REPO/tags" 2>/dev/null | jq -r '.[0].name // empty' 2>/dev/null)" || true
+fi
 if [[ -n "$LATEST_TAG" ]]; then
   REF="refs/tags/$LATEST_TAG"
   echo "Downloading claude-code-permission-alarm $LATEST_TAG..."
 else
-  echo "Downloading claude-code-permission-alarm (no tagged release found, using master)..."
+  echo "Downloading claude-code-permission-alarm (no tags found, using master)..."
 fi
 
 curl -fsSL "https://codeload.github.com/$REPO/tar.gz/$REF" -o "$TMP_DIR/src.tar.gz"
