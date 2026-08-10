@@ -317,6 +317,59 @@ echo "=== Permission Timeout & Attention Reminder -- test suite ==="
   fi
 }
 
+# Bonus: a session_id containing shell metacharacters is rejected outright,
+# rather than reaching the point where it's spliced into an embedded
+# `bash -c` string (worker spawn) or used as a file path component (lock/
+# activity files). Proves the fix, not just its absence: an unfixed version
+# of this code would have created a file literally named "pwned" here.
+{
+  name="malicious_session_id_rejected"
+  d="$(new_case_dir "$name")"; log="$d/log"
+  payload="$(jq -n --arg sid 'a"; touch '"$d"'/pwned; echo "' '{hook_event_name:"PermissionRequest", session_id:$sid}')"
+  echo "$payload" | env STATE_DIR="$d/state" LOG_FILE="$log" PERMISSION_ALARM_DRY_RUN=1 "$ROOT/bin/permission-hook.sh"
+  rc=$?
+  sleep 0.3
+  if [[ "$rc" -eq 0 ]] && not_present "$log" "timer started" && [[ ! -e "$d/pwned" ]]; then
+    pass "$name"
+  else
+    fail "$name" "expected malicious session_id to be rejected with no timer and no injected file"
+  fi
+}
+
+# Bonus: LOG_FILE is rotated once it exceeds LOG_MAX_BYTES, checked only on
+# the comparatively rare wait-event path (not on every tool call).
+{
+  name="log_rotation_on_wait_event"
+  d="$(new_case_dir "$name")"; log="$d/log"
+  yes "padding" | head -c 5000 > "$log"
+  send_event permission_request "sess-15" "$d/state" "$log" PERMISSION_TIMEOUT=1 LOG_MAX_BYTES=1000
+  sleep 0.2
+  if [[ -f "$log.old" ]]; then
+    pass "$name"
+  else
+    fail "$name" "expected oversized log to be rotated to $log.old"
+  fi
+}
+
+# Bonus: stale state/*.activity files are pruned on the same wait-event path;
+# a fresh one for an unrelated session is left alone.
+{
+  name="stale_activity_files_pruned"
+  d="$(new_case_dir "$name")"; log="$d/log"
+  stale="$d/state/old-session.activity"
+  echo "0" > "$stale"
+  touch -t 202001010000 "$stale"
+  fresh="$d/state/fresh-session.activity"
+  echo "0" > "$fresh"
+  send_event permission_request "sess-16" "$d/state" "$log" PERMISSION_TIMEOUT=1 STALE_ACTIVITY_DAYS=1
+  sleep 0.2
+  if [[ ! -e "$stale" ]] && [[ -e "$fresh" ]]; then
+    pass "$name"
+  else
+    fail "$name" "expected only the stale activity file to be pruned"
+  fi
+}
+
 # Bonus: malformed / unrelated events never start a timer
 {
   name="malformed_and_unrelated_events_ignored"
