@@ -23,6 +23,8 @@ _orig_ENABLE_IDLE_FALLBACK_CANCEL="${ENABLE_IDLE_FALLBACK_CANCEL-}"
 _orig_ATTENTION_SOUND_GAIN="${ATTENTION_SOUND_GAIN-}"
 _orig_FORCE_SYSTEM_VOLUME="${FORCE_SYSTEM_VOLUME-}"
 _orig_SYSTEM_VOLUME_LEVEL="${SYSTEM_VOLUME_LEVEL-}"
+_orig_LOG_MAX_BYTES="${LOG_MAX_BYTES-}"
+_orig_STALE_ACTIVITY_DAYS="${STALE_ACTIVITY_DAYS-}"
 
 if [[ -f "$PERMISSION_ALARM_ROOT/config.env" ]]; then
   # shellcheck disable=SC1091
@@ -45,12 +47,14 @@ fi
 [[ -n "$_orig_ATTENTION_SOUND_GAIN" ]] && ATTENTION_SOUND_GAIN="$_orig_ATTENTION_SOUND_GAIN"
 [[ -n "$_orig_FORCE_SYSTEM_VOLUME" ]] && FORCE_SYSTEM_VOLUME="$_orig_FORCE_SYSTEM_VOLUME"
 [[ -n "$_orig_SYSTEM_VOLUME_LEVEL" ]] && SYSTEM_VOLUME_LEVEL="$_orig_SYSTEM_VOLUME_LEVEL"
+[[ -n "$_orig_LOG_MAX_BYTES" ]] && LOG_MAX_BYTES="$_orig_LOG_MAX_BYTES"
+[[ -n "$_orig_STALE_ACTIVITY_DAYS" ]] && STALE_ACTIVITY_DAYS="$_orig_STALE_ACTIVITY_DAYS"
 
 unset _orig_PERMISSION_TIMEOUT _orig_ATTENTION_SOUND _orig_ATTENTION_COMMAND \
   _orig_ENABLE_ATTENTION_SOUND _orig_ENABLE_ATTENTION_COMMAND _orig_POLL_INTERVAL \
   _orig_LOG_FILE _orig_STATE_DIR _orig_DEBUG_LOG_PAYLOAD _orig_COMMAND_TIMEOUT \
   _orig_ENABLE_IDLE_FALLBACK_CANCEL _orig_ATTENTION_SOUND_GAIN _orig_FORCE_SYSTEM_VOLUME \
-  _orig_SYSTEM_VOLUME_LEVEL
+  _orig_SYSTEM_VOLUME_LEVEL _orig_LOG_MAX_BYTES _orig_STALE_ACTIVITY_DAYS
 
 # --- Built-in defaults for anything still unset after config.env ---
 : "${PERMISSION_TIMEOUT:=10}"
@@ -80,6 +84,12 @@ unset _orig_PERMISSION_TIMEOUT _orig_ATTENTION_SOUND _orig_ATTENTION_COMMAND \
 # even briefly, is intrusive enough to require an explicit opt-in.
 : "${FORCE_SYSTEM_VOLUME:=false}"
 : "${SYSTEM_VOLUME_LEVEL:=85}"
+# LOG_FILE is rotated to a single .old backup once it exceeds this size, and
+# state/*.activity files older than STALE_ACTIVITY_DAYS are pruned -- both
+# unbounded otherwise, since nothing else ever cleans them up (only the
+# .lock dirs are, via the timer worker's own trap).
+: "${LOG_MAX_BYTES:=5242880}"
+: "${STALE_ACTIVITY_DAYS:=7}"
 
 # Test seams — never set these in normal use.
 : "${PERMISSION_ALARM_DRY_RUN:=0}"
@@ -187,4 +197,23 @@ mark_activity_at() {
 last_activity_epoch() {
   local session_id="$1"
   cat "$(activity_file "$session_id")" 2>/dev/null || echo 0
+}
+
+# rotate_log_if_needed — called only from the low-frequency wait-event path
+# (a new permission timer starting), never from the hot PreToolUse/
+# PostToolUse path, so this never adds overhead to every tool call.
+rotate_log_if_needed() {
+  [[ -f "$LOG_FILE" ]] || return 0
+  local size
+  size="$(wc -c <"$LOG_FILE" 2>/dev/null | tr -d ' ')"
+  [[ "$size" =~ ^[0-9]+$ ]] || return 0
+  if [[ "$size" -gt "$LOG_MAX_BYTES" ]]; then
+    mv -f "$LOG_FILE" "$LOG_FILE.old" 2>/dev/null || true
+  fi
+}
+
+# prune_stale_activity_files — same low-frequency call site as above.
+prune_stale_activity_files() {
+  [[ -d "$STATE_DIR" ]] || return 0
+  find "$STATE_DIR" -maxdepth 1 -name '*.activity' -mtime "+${STALE_ACTIVITY_DAYS}" -delete 2>/dev/null || true
 }

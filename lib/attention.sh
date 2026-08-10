@@ -40,16 +40,20 @@ play_sound() {
   # system volume is intrusive enough to require an explicit opt-in.
   local prev_volume=""
   if [[ "$FORCE_SYSTEM_VOLUME" == "true" ]] && command -v osascript >/dev/null 2>&1; then
-    prev_volume="$(osascript -e 'output volume of (get volume settings)' 2>/dev/null)"
-    if [[ "$prev_volume" =~ ^[0-9]+$ ]]; then
-      if osascript -e "set volume output volume $SYSTEM_VOLUME_LEVEL" >/dev/null 2>&1; then
-        log INFO "system volume raised to ${SYSTEM_VOLUME_LEVEL} (was ${prev_volume})"
+    if [[ ! "$SYSTEM_VOLUME_LEVEL" =~ ^[0-9]+$ ]] || [[ "$SYSTEM_VOLUME_LEVEL" -gt 100 ]]; then
+      log WARN "SYSTEM_VOLUME_LEVEL='$SYSTEM_VOLUME_LEVEL' is not a valid 0-100 integer, skipping forced volume raise"
+    else
+      prev_volume="$(osascript -e 'output volume of (get volume settings)' 2>/dev/null)"
+      if [[ "$prev_volume" =~ ^[0-9]+$ ]]; then
+        if osascript -e "set volume output volume $SYSTEM_VOLUME_LEVEL" >/dev/null 2>&1; then
+          log INFO "system volume raised to ${SYSTEM_VOLUME_LEVEL} (was ${prev_volume})"
+        else
+          log WARN "failed to raise system volume, playing at current volume"
+          prev_volume=""
+        fi
       else
-        log WARN "failed to raise system volume, playing at current volume"
         prev_volume=""
       fi
-    else
-      prev_volume=""
     fi
   fi
 
