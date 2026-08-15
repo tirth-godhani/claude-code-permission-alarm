@@ -76,4 +76,4 @@ echo ""
 
 echo ""
 echo "Edit $INSTALL_DIR/config.env any time to change the sound or timeout."
-echo "To uninstall later: $INSTALL_DIR/uninstall.sh && rm -rf $INSTALL_DIR"
+echo "To uninstall later: curl -fsSL https://raw.githubusercontent.com/$REPO/master/get-uninstall.sh | bash"

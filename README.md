@@ -38,12 +38,16 @@ cd claude-code-permission-alarm
 
 ## How to uninstall
 
-If you installed with the one-line command above:
+If you installed with the one-line command above, uninstall the same way:
 
 ```bash
-~/.claude-code-permission-alarm/uninstall.sh
-rm -rf ~/.claude-code-permission-alarm
+curl -fsSL https://raw.githubusercontent.com/tirth-godhani/claude-code-permission-alarm/master/get-uninstall.sh | bash
 ```
+
+This removes the hooks from Claude Code's settings and deletes
+`~/.claude-code-permission-alarm`. (Equivalent to running
+`~/.claude-code-permission-alarm/uninstall.sh && rm -rf ~/.claude-code-permission-alarm`
+by hand.)
 
 If you cloned the repo yourself, run `./uninstall.sh` from inside it instead.
 
